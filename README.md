@@ -30,6 +30,10 @@ Funcionamiento:
     - Al pulsar el botón, el semaforo cambiara principalmente 5 segundos despues. Solo cambiara antes de los 5 segundos si el ciclo actual ya estaba por cambiar.
     - Solo se mantendrá una solicitud a la vez. Si una persona pulsa el botón, se bloquearan los otros hasta que la solicitud termine.
  
+# Mockup
+
+https://drive.google.com/file/d/1QjMIdgousDISngu440odbuZb5858p7xv/view?usp=drivesdk
+ 
 # Diagrama de Conexiones:
  
 # Instrucciones de instalación:
