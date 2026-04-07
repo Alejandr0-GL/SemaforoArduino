@@ -60,3 +60,77 @@ void setup() {
   pinMode(boton_OO, INPUT_PULLUP);
 }
 
+void loop() {
+
+  unsigned long tiempoActual = millis();
+
+  // DETECCIÓN BOTONES
+
+  if (digitalRead(boton_NS) == LOW && !bloqueo_NS) {
+    solicitud_NS = true;
+    bloqueo_NS = true;
+  }
+
+  if (digitalRead(boton_OO) == LOW && !bloqueo_EO) {
+    solicitud_EO = true;
+    bloqueo_EO = true;
+  }
+
+  // MÁQUINA DE ESTADOS
+  switch (estado) {
+
+    case 0: // A VERDE - B ROJO
+      A_verde_ON();
+      B_rojo_ON();
+
+      // Cruce NS permitido si fue solicitado
+      if (solicitud_NS) activarPeatonNS(tiempoActual);
+
+      if (tiempoActual - tiempoAnterior >= tVerde) {
+        estado = 1;
+        tiempoAnterior = tiempoActual;
+      }
+      break;
+
+    case 1: // A AMARILLO
+      A_amarillo_ON();
+      B_rojo_ON();
+
+      if (tiempoActual - tiempoAnterior >= tAmarillo) {
+        estado = 2;
+        tiempoAnterior = tiempoActual;
+      }
+      break;
+
+    case 2: // B VERDE - A ROJO
+      B_verde_ON();
+      A_rojo_ON();
+
+      // Cruce OO permitido si fue solicitado
+      if (solicitud_OO) activarPeatonEO(tiempoActual);
+
+      if (tiempoActual - tiempoAnterior >= tVerde) {
+        estado = 3;
+        tiempoAnterior = tiempoActual;
+      }
+      break;
+
+    case 3: // B AMARILLO
+      B_amarillo_ON();
+      A_rojo_ON();
+
+      if (tiempoActual - tiempoAnterior >= tAmarillo) {
+        estado = 0;
+        tiempoAnterior = tiempoActual;
+      }
+      break;
+  }
+}
+
+// FUNCIONES VEHICULARES 
+void A_rojo_ON() {
+  digitalWrite(A_rojo, HIGH);
+  digitalWrite(A_amarillo, LOW);
+  digitalWrite(A_verde, LOW);
+}
+
