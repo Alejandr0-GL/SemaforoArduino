@@ -130,115 +130,174 @@ void logEvento(
 );
 
 
+// Setup
 void setup() {
-  pinMode(A_rojo, OUTPUT);
-  pinMode(A_amarillo, OUTPUT);
-  pinMode(A_verde, OUTPUT);
 
-  pinMode(B_rojo, OUTPUT);
-  pinMode(B_amarillo, OUTPUT);
-  pinMode(B_verde, OUTPUT);
+  // Salidas vehiculares
+  pinMode(A_ROJO, OUTPUT);
+  pinMode(A_AMARILLO, OUTPUT);
+  pinMode(A_VERDE, OUTPUT);
 
-  pinMode(peat_NS_verde, OUTPUT);
-  pinMode(peat_NS_rojo, OUTPUT);
-  pinMode(peat_EO_verde, OUTPUT);
-  pinMode(peat_EO_rojo, OUTPUT);
+  pinMode(B_ROJO, OUTPUT);
+  pinMode(B_AMARILLO, OUTPUT);
+  pinMode(B_VERDE, OUTPUT);
 
-  pinMode(boton_NS, INPUT_PULLUP);
-  pinMode(boton_EO, INPUT_PULLUP);
+  // Salidas peatonales
+  pinMode(PEATON_NS_VERDE, OUTPUT);
+  pinMode(PEATON_NS_ROJO, OUTPUT);
 
+  pinMode(PEATON_EO_VERDE, OUTPUT);
+  pinMode(PEATON_EO_ROJO, OUTPUT);
+
+  // Entradas
+  pinMode(BOTON_NS, INPUT_PULLUP);
+  pinMode(BOTON_EO, INPUT_PULLUP);
+
+  // Serial
   Serial.begin(9600);
 
-  digitalWrite(peat_NS_verde, LOW);
-  digitalWrite(peat_NS_rojo, HIGH);
-  digitalWrite(peat_EO_verde, LOW);
-  digitalWrite(peat_EO_rojo, HIGH);
+  // Estado inicial peatones
+  digitalWrite(PEATON_NS_VERDE, LOW);
+  digitalWrite(PEATON_NS_ROJO, HIGH);
 
-  procesoVehicularActual = &pVehA_Verde;
-  admitirProceso(*procesoVehicularActual);
+  digitalWrite(PEATON_EO_VERDE, LOW);
+  digitalWrite(PEATON_EO_ROJO, HIGH);
+
+  // Proceso inicial
+  procesoActual = &pA_Verde;
+  admitirProceso(*procesoActual);
 
   tiempoAnterior = millis();
-  logEvento("BOOT", "SISTEMA", ram_usada_actual, "INICIALIZADO");
+
+  logEvento("BOOT", "SISTEMA", ramUsada, "INICIALIZADO");
 }
 
+
+
+// Loop
+
 void loop() {
+
   unsigned long tiempoActual = millis();
 
-  // ===== DETECCIÓN BOTONES =====
-  if (digitalRead(boton_NS) == LOW && !bloqueo_NS) {
-    solicitud_NS = true;
-    bloqueo_NS = true;
-    logEvento("BOTON", "PEATON_NS", ram_usada_actual, "SOLICITUD_ENCOLADA");
+  // Tareas concurrentes
+  detectarBotones();
+  actualizarCruces(tiempoActual);
+  actualizarSemaforos();
+}
+
+// Detección de botones peatonales
+void detectarBotones() {
+
+  // norte - sur
+  if (digitalRead(BOTON_NS) == LOW && !bloqueoNS) {
+
+    solicitudNS = true;
+    bloqueoNS = true;
+
+    logEvento(
+      "BOTON",
+      "PEATON_NS",
+      ramUsada,
+      "SOLICITUD"
+    );
   }
 
-  if (digitalRead(boton_EO) == LOW && !bloqueo_EO) {
-    solicitud_EO = true;
-    bloqueo_EO = true;
-    logEvento("BOTON", "PEATON_EO", ram_usada_actual, "SOLICITUD_ENCOLADA");
+  // este - oeste
+  if (digitalRead(BOTON_EO) == LOW && !bloqueoEO) {
+
+    solicitudEO = true;
+    bloqueoEO = true;
+
+    logEvento(
+      "BOTON",
+      "PEATON_EO",
+      ramUsada,
+      "SOLICITUD"
+    );
   }
+}
 
-  // Tarea cooperativa peatonal (sin delay)
-  actualizarCrucePeatonal(tiempoActual);
+// Máquina de estados vehicular
 
-  // ===== MÁQUINA DE ESTADOS =====
-  switch (estado) {
-    case 0: // A VERDE - B ROJO
-      A_verde_ON();
-      B_rojo_ON();
+void actualizarSemaforos() {
 
-      if (solicitud_NS && !monitorCrucePeatonalOcupado) {
+  unsigned long tiempoActual = millis();
+
+  switch (estadoActual) {
+
+    case 0:
+
+      setSemaforoA(false, false, true);
+      setSemaforoB(true, false, false);
+
+      // Cruce peatonal permitido
+      if (solicitudNS && !monitorCruceOcupado) {
         iniciarCruceNS(tiempoActual);
       }
 
-      if ((tiempoActual - tiempoAnterior >= tVerde) && !monitorCrucePeatonalOcupado) {
-        if (contextSwitchVehicular(1)) {
-          estado = 1;
-          tiempoAnterior = tiempoActual;
-        }
+      // Cambio de estado
+      if (
+        tiempoActual - tiempoAnterior >= T_VERDE &&
+        !monitorCruceOcupado
+      ) {
+
+        cambiarEstado(1);
       }
+
       break;
 
-    case 1: // A AMARILLO
-      A_amarillo_ON();
-      B_rojo_ON();
 
-      if ((tiempoActual - tiempoAnterior >= tAmarillo) && !monitorCrucePeatonalOcupado) {
-        if (contextSwitchVehicular(2)) {
-          estado = 2;
-          tiempoAnterior = tiempoActual;
-        }
+    case 1:
+
+      setSemaforoA(false, true, false);
+      setSemaforoB(true, false, false);
+
+      if (
+        tiempoActual - tiempoAnterior >= T_AMARILLO &&
+        !monitorCruceOcupado
+      ) {
+
+        cambiarEstado(2);
       }
+
       break;
+    case 2:
 
-    case 2: // B VERDE - A ROJO
-      B_verde_ON();
-      A_rojo_ON();
+      setSemaforoB(false, false, true);
+      setSemaforoA(true, false, false);
 
-      if (solicitud_EO && !monitorCrucePeatonalOcupado) {
+      if (solicitudEO && !monitorCruceOcupado) {
         iniciarCruceEO(tiempoActual);
       }
 
-      if ((tiempoActual - tiempoAnterior >= tVerde) && !monitorCrucePeatonalOcupado) {
-        if (contextSwitchVehicular(3)) {
-          estado = 3;
-          tiempoAnterior = tiempoActual;
-        }
+      if (
+        tiempoActual - tiempoAnterior >= T_VERDE &&
+        !monitorCruceOcupado
+      ) {
+
+        cambiarEstado(3);
       }
+
       break;
 
-    case 3: // B AMARILLO
-      B_amarillo_ON();
-      A_rojo_ON();
+    case 3:
 
-      if ((tiempoActual - tiempoAnterior >= tAmarillo) && !monitorCrucePeatonalOcupado) {
-        if (contextSwitchVehicular(0)) {
-          estado = 0;
-          tiempoAnterior = tiempoActual;
-        }
+      setSemaforoB(false, true, false);
+      setSemaforoA(true, false, false);
+
+      if (
+        tiempoActual - tiempoAnterior >= T_AMARILLO &&
+        !monitorCruceOcupado
+      ) {
+
+        cambiarEstado(0);
       }
+
       break;
   }
 }
+
 
 // ================= FUNCIONES VEHICULARES =================
 void A_rojo_ON() {
