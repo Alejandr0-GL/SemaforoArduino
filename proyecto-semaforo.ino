@@ -1,49 +1,65 @@
-// ================= SEMÁFORO A (NORTE-SUR) =================
-const int A_rojo = 2;
-const int A_amarillo = 3;
-const int A_verde = 4;
+// Semáforo a (norte - sur)
+const int A_ROJO = 2;
+const int A_AMARILLO = 3;
+const int A_VERDE = 4;
 
-// ================= SEMÁFORO B (ESTE-OESTE) =================
-const int B_rojo = 5;
-const int B_amarillo = 6;
-const int B_verde = 7;
+// Semáforo b (este – oeste) 
+const int B_ROJO = 5;
+const int B_AMARILLO = 6;
+const int B_VERDE = 7;
 
-// ================= PEATONALES =================
-const int peat_NS_verde = 9;
-const int peat_NS_rojo = 10;
-const int peat_EO_verde = 11;
-const int peat_EO_rojo = 12;
+// Peatonales 
+const int PEATON_NS_VERDE = 9;
+const int PEATON_NS_ROJO = 10;
 
-// ================= BOTONES =================
-const int boton_NS = 8;
-const int boton_EO = 13;
+const int PEATON_EO_VERDE = 11;
+const int PEATON_EO_ROJO = 12;
 
-// ================= VARIABLES BASE =================
+// Botones 
+const int BOTON_NS = 8;
+const int BOTON_EO = 13;
+
+
+// Variables del sistema
 unsigned long tiempoAnterior = 0;
 
-int estado = 0;
-// 0=A verde
-// 1=A amarillo
-// 2=B verde
-// 3=B amarillo
+// Estados del sistema vehicular
+/*
+ 0 = A verde
+ 1 = A amarillo
+ 2 = B verde
+ 3 = B amarillo
+*/
+int estadoActual = 0;
 
-bool solicitud_NS = false;
-bool solicitud_EO = false;
+// Variables peatonales
+// Solicitudes realizadas por botones
+bool solicitudNS = false;
+bool solicitudEO = false;
 
-bool bloqueo_NS = false;
-bool bloqueo_EO = false;
+// Bloqueo anti-spam de botones
+bool bloqueoNS = false;
+bool bloqueoEO = false;
 
-const unsigned long tVerde = 5000;
-const unsigned long tAmarillo = 2000;
-const unsigned long tPeaton = 4000;
 
+// Control de cruces activos
+bool cruceNSActivo = false;
+bool cruceEOActivo = false;
+
+// Solo un cruce peatonal puede usarse a la vez
+bool monitorCruceOcupado = false;
+
+
+// Tiempos del sistema
+const unsigned long T_VERDE = 5000;
+const unsigned long T_AMARILLO = 2000;
+const unsigned long T_PEATON = 4000;
+
+
+// Control temporal peatonal
 unsigned long inicioCruceNS = 0;
 unsigned long inicioCruceEO = 0;
 
-// ================= SINCRONIZACIÓN (MONITOR LÓGICO) =================
-bool monitorCrucePeatonalOcupado = false;
-bool cruceNSActivo = false;
-bool cruceEOActivo = false;
 
 // ================= MEMORIA SIMULADA =================
 const int RAM_TOTAL = 1024;  // KB simbólicos
