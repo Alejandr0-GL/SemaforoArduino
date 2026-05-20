@@ -299,119 +299,146 @@ void actualizarSemaforos() {
 }
 
 
-// ================= FUNCIONES VEHICULARES =================
-void A_rojo_ON() {
-  digitalWrite(A_rojo, HIGH);
-  digitalWrite(A_amarillo, LOW);
-  digitalWrite(A_verde, LOW);
-}
+// Cambio de contexto
 
-void A_amarillo_ON() {
-  digitalWrite(A_rojo, LOW);
-  digitalWrite(A_amarillo, HIGH);
-  digitalWrite(A_verde, LOW);
-}
+void cambiarEstado(int nuevoEstado) {
 
-void A_verde_ON() {
-  digitalWrite(A_rojo, LOW);
-  digitalWrite(A_amarillo, LOW);
-  digitalWrite(A_verde, HIGH);
-}
+  if (contextSwitch(nuevoEstado)) {
 
-void B_rojo_ON() {
-  digitalWrite(B_rojo, HIGH);
-  digitalWrite(B_amarillo, LOW);
-  digitalWrite(B_verde, LOW);
-}
-
-void B_verde_ON() {
-  digitalWrite(B_rojo, LOW);
-  digitalWrite(B_amarillo, LOW);
-  digitalWrite(B_verde, HIGH);
-}
-
-void B_amarillo_ON() {
-  digitalWrite(B_rojo, LOW);
-  digitalWrite(B_amarillo, HIGH);
-  digitalWrite(B_verde, LOW);
-}
-
-// ================= FUNCIONES PEATONALES =================
-void iniciarCruceNS(unsigned long tiempoActual) {
-  if (monitorCrucePeatonalOcupado) {
-    return;
+    estadoActual = nuevoEstado;
+    tiempoAnterior = millis();
   }
+}
+
+
+// Control peatonal
+
+void iniciarCruceNS(unsigned long tiempoActual) {
+
+  if (monitorCruceOcupado) return;
 
   if (!admitirProceso(pPeatonNS)) {
-    eventos_espera_memoria++;
-    logEvento("ESPERA_MEMORIA", "PEATON_NS", ram_usada_actual, "ADMISION_RECHAZADA");
+
+    erroresMemoria++;
+
+    logEvento(
+      "ERROR_MEMORIA",
+      "PEATON_NS",
+      ramUsada,
+      "RECHAZADO"
+    );
+
     return;
   }
 
-  monitorCrucePeatonalOcupado = true;
+  monitorCruceOcupado = true;
+
   cruceNSActivo = true;
-  cruceEOActivo = false;
   inicioCruceNS = tiempoActual;
 
-  digitalWrite(peat_NS_rojo, LOW);
-  digitalWrite(peat_NS_verde, HIGH);
-  digitalWrite(peat_EO_verde, LOW);
-  digitalWrite(peat_EO_rojo, HIGH);
+  digitalWrite(PEATON_NS_ROJO, LOW);
+  digitalWrite(PEATON_NS_VERDE, HIGH);
 
-  logEvento("INICIO_CRUCE", "PEATON_NS", ram_usada_actual, "ADMISION_OK");
+  logEvento(
+    "CRUCE_INICIO",
+    "PEATON_NS",
+    ramUsada,
+    "OK"
+  );
 }
+
+
+
 
 void iniciarCruceEO(unsigned long tiempoActual) {
-  if (monitorCrucePeatonalOcupado) {
-    return;
-  }
+
+  if (monitorCruceOcupado) return;
 
   if (!admitirProceso(pPeatonEO)) {
-    eventos_espera_memoria++;
-    logEvento("ESPERA_MEMORIA", "PEATON_EO", ram_usada_actual, "ADMISION_RECHAZADA");
+
+    erroresMemoria++;
+
+    logEvento(
+      "ERROR_MEMORIA",
+      "PEATON_EO",
+      ramUsada,
+      "RECHAZADO"
+    );
+
     return;
   }
 
-  monitorCrucePeatonalOcupado = true;
+  monitorCruceOcupado = true;
+
   cruceEOActivo = true;
-  cruceNSActivo = false;
   inicioCruceEO = tiempoActual;
 
-  digitalWrite(peat_EO_rojo, LOW);
-  digitalWrite(peat_EO_verde, HIGH);
-  digitalWrite(peat_NS_verde, LOW);
-  digitalWrite(peat_NS_rojo, HIGH);
+  digitalWrite(PEATON_EO_ROJO, LOW);
+  digitalWrite(PEATON_EO_VERDE, HIGH);
 
-  logEvento("INICIO_CRUCE", "PEATON_EO", ram_usada_actual, "ADMISION_OK");
+  logEvento(
+    "CRUCE_INICIO",
+    "PEATON_EO",
+    ramUsada,
+    "OK"
+  );
 }
 
-void actualizarCrucePeatonal(unsigned long tiempoActual) {
-  if (cruceNSActivo && (tiempoActual - inicioCruceNS >= tPeaton)) {
-    digitalWrite(peat_NS_verde, LOW);
-    digitalWrite(peat_NS_rojo, HIGH);
+// Actualización de cruces peatonales
 
-    solicitud_NS = false;
-    bloqueo_NS = false;
-    cruceNSActivo = false;
-    monitorCrucePeatonalOcupado = false;
+void actualizarCruces(unsigned long tiempoActual) {
+
+  // norte - sur
+  if (
+    cruceNSActivo &&
+    tiempoActual - inicioCruceNS >= T_PEATON
+  ) {
+
+    digitalWrite(PEATON_NS_VERDE, LOW);
+    digitalWrite(PEATON_NS_ROJO, HIGH);
 
     liberarProceso(pPeatonNS);
-    logEvento("FIN_CRUCE", "PEATON_NS", ram_usada_actual, "RECURSOS_LIBERADOS");
+
+    solicitudNS = false;
+    bloqueoNS = false;
+
+    cruceNSActivo = false;
+    monitorCruceOcupado = false;
+
+    logEvento(
+      "CRUCE_FIN",
+      "PEATON_NS",
+      ramUsada,
+      "LIBERADO"
+    );
   }
 
-  if (cruceEOActivo && (tiempoActual - inicioCruceEO >= tPeaton)) {
-    digitalWrite(peat_EO_verde, LOW);
-    digitalWrite(peat_EO_rojo, HIGH);
+  // este - oeste
+  if (
+    cruceEOActivo &&
+    tiempoActual - inicioCruceEO >= T_PEATON
+  ) {
 
-    solicitud_EO = false;
-    bloqueo_EO = false;
-    cruceEOActivo = false;
-    monitorCrucePeatonalOcupado = false;
+    digitalWrite(PEATON_EO_VERDE, LOW);
+    digitalWrite(PEATON_EO_ROJO, HIGH);
 
     liberarProceso(pPeatonEO);
-    logEvento("FIN_CRUCE", "PEATON_EO", ram_usada_actual, "RECURSOS_LIBERADOS");
+
+    solicitudEO = false;
+    bloqueoEO = false;
+
+    cruceEOActivo = false;
+    monitorCruceOcupado = false;
+
+    logEvento(
+      "CRUCE_FIN",
+      "PEATON_EO",
+      ramUsada,
+      "LIBERADO"
+    );
   }
 }
+
 
 // ================= MEMORIA + CONTEXT SWITCH =================
 Proceso* procesoPorEstado(int estadoVehicular) {
