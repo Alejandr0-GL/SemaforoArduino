@@ -61,46 +61,74 @@ unsigned long inicioCruceNS = 0;
 unsigned long inicioCruceEO = 0;
 
 
-// ================= MEMORIA SIMULADA =================
-const int RAM_TOTAL = 1024;  // KB simbólicos
+// Simulación de memoria ram
+const int RAM_TOTAL = 1024;
 
+/*
+ Cada estado importante del sistema
+ se comporta como un proceso.
+*/
 struct Proceso {
-  const char* id;
-  int ram_kb;
+
+  const char* nombre;
+  int memoriaKB;
   bool activo;
 };
 
-Proceso pVehA_Verde = {"VEH_A_VERDE", 180, false};
-Proceso pVehA_Amarillo = {"VEH_A_AMARILLO", 160, false};
-Proceso pVehB_Verde = {"VEH_B_VERDE", 180, false};
-Proceso pVehB_Amarillo = {"VEH_B_AMARILLO", 160, false};
-Proceso pPeatonNS = {"PEATON_NS", 220, false};
-Proceso pPeatonEO = {"PEATON_EO", 220, false};
 
-Proceso* procesoVehicularActual = 0;
+// Procesos vehiculares
+Proceso pA_Verde     = {"A_VERDE", 180, false};
+Proceso pA_Amarillo  = {"A_AMARILLO", 160, false};
 
-int ram_usada_actual = 0;
-int ram_maxima_usada = 0;
-unsigned long eventos_espera_memoria = 0;
+Proceso pB_Verde     = {"B_VERDE", 180, false};
+Proceso pB_Amarillo  = {"B_AMARILLO", 160, false};
 
-// ================= PROTOTIPOS =================
-void A_rojo_ON();
-void A_amarillo_ON();
-void A_verde_ON();
-void B_rojo_ON();
-void B_amarillo_ON();
-void B_verde_ON();
 
+
+
+// Procesos peatonales 
+Proceso pPeatonNS    = {"PEATON_NS", 220, false};
+Proceso pPeatonEO    = {"PEATON_EO", 220, false};
+
+// Proceso vehicular actual
+Proceso* procesoActual = NULL;
+
+// Métricas del sistema
+int ramUsada = 0;
+int ramMaxima = 0;
+
+unsigned long erroresMemoria = 0;
+
+// Prototipos
+
+// Control vehicular
+void actualizarSemaforos();
+void cambiarEstado(int nuevoEstado);
+
+// Control peatonal
+void detectarBotones();
 void iniciarCruceNS(unsigned long tiempoActual);
 void iniciarCruceEO(unsigned long tiempoActual);
-void actualizarCrucePeatonal(unsigned long tiempoActual);
+void actualizarCruces(unsigned long tiempoActual);
 
-Proceso* procesoPorEstado(int estadoVehicular);
+// Control de LEDs
+void setSemaforoA(bool rojo, bool amarillo, bool verde);
+void setSemaforoB(bool rojo, bool amarillo, bool verde);
+
+// Gestión de procesos
+Proceso* obtenerProceso(int estado);
 bool admitirProceso(Proceso& proceso);
 void liberarProceso(Proceso& proceso);
-bool contextSwitchVehicular(int nuevoEstado);
+bool contextSwitch(int nuevoEstado);
 
-void logEvento(const char* evento, const char* procesoId, int ramConsumida, const char* estadoMemoria);
+// Logs
+void logEvento(
+  const char* evento,
+  const char* proceso,
+  int ram,
+  const char* estado
+);
+
 
 void setup() {
   pinMode(A_rojo, OUTPUT);
