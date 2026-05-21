@@ -440,88 +440,83 @@ void actualizarCruces(unsigned long tiempoActual) {
 }
 
 
-// ================= MEMORIA + CONTEXT SWITCH =================
-Proceso* procesoPorEstado(int estadoVehicular) {
-  switch (estadoVehicular) {
-    case 0:
-      return &pVehA_Verde;
-    case 1:
-      return &pVehA_Amarillo;
-    case 2:
-      return &pVehB_Verde;
-    case 3:
-      return &pVehB_Amarillo;
-    default:
-      return &pVehA_Verde;
+// Control de leds
+
+void setSemaforoA(bool rojo, bool amarillo, bool verde) {
+
+  digitalWrite(A_ROJO, rojo);
+  digitalWrite(A_AMARILLO, amarillo);
+  digitalWrite(A_VERDE, verde);
+}
+
+void setSemaforoB(bool rojo, bool amarillo, bool verde) {
+
+  digitalWrite(B_ROJO, rojo);
+  digitalWrite(B_AMARILLO, amarillo);
+  digitalWrite(B_VERDE, verde);
+}
+
+// Gestión de procesos
+
+Proceso* obtenerProceso(int estado) {
+
+  switch (estado) {
+
+    case 0: return &pA_Verde;
+    case 1: return &pA_Amarillo;
+    case 2: return &pB_Verde;
+    case 3: return &pB_Amarillo;
+
+    default: return &pA_Verde;
   }
 }
 
-bool admitirProceso(Proceso& proceso) {
-  if (proceso.activo) {
-    return true;
-  }
 
-  if (ram_usada_actual + proceso.ram_kb > RAM_TOTAL) {
+bool admitirProceso(Proceso& proceso) {
+
+  if (proceso.activo) return true;
+
+  if (ramUsada + proceso.memoriaKB > RAM_TOTAL) {
     return false;
   }
 
   proceso.activo = true;
-  ram_usada_actual += proceso.ram_kb;
 
-  if (ram_usada_actual > ram_maxima_usada) {
-    ram_maxima_usada = ram_usada_actual;
+  ramUsada += proceso.memoriaKB;
+
+  if (ramUsada > ramMaxima) {
+    ramMaxima = ramUsada;
   }
 
-  logEvento("ADMITIDO", proceso.id, ram_usada_actual, "OK");
+  logEvento(
+    "PROCESO_ADMITIDO",
+    proceso.nombre,
+    ramUsada,
+    "OK"
+  );
+
   return true;
 }
+
 
 void liberarProceso(Proceso& proceso) {
-  if (!proceso.activo) {
-    return;
-  }
+
+  if (!proceso.activo) return;
 
   proceso.activo = false;
-  ram_usada_actual -= proceso.ram_kb;
-  if (ram_usada_actual < 0) {
-    ram_usada_actual = 0;
+
+  ramUsada -= proceso.memoriaKB;
+
+  if (ramUsada < 0) {
+    ramUsada = 0;
   }
 
-  logEvento("LIBERADO", proceso.id, ram_usada_actual, "OK");
-}
-
-bool contextSwitchVehicular(int nuevoEstado) {
-  Proceso* siguiente = procesoPorEstado(nuevoEstado);
-
-  if (procesoVehicularActual == siguiente) {
-    return true;
-  }
-
-  int ramLuegoDelCambio = ram_usada_actual;
-  if (procesoVehicularActual != 0) {
-    ramLuegoDelCambio -= procesoVehicularActual->ram_kb;
-  }
-  ramLuegoDelCambio += siguiente->ram_kb;
-
-  if (ramLuegoDelCambio > RAM_TOTAL) {
-    eventos_espera_memoria++;
-    logEvento("ESPERA_MEMORIA", siguiente->id, ram_usada_actual, "CONTEXT_SWITCH_BLOQUEADO");
-    return false;
-  }
-
-  if (procesoVehicularActual != 0) {
-    liberarProceso(*procesoVehicularActual);
-  }
-
-  if (!admitirProceso(*siguiente)) {
-    eventos_espera_memoria++;
-    logEvento("ESPERA_MEMORIA", siguiente->id, ram_usada_actual, "FALLO_ADMISION");
-    return false;
-  }
-
-  procesoVehicularActual = siguiente;
-  logEvento("CONTEXT_SWITCH", siguiente->id, ram_usada_actual, "OK");
-  return true;
+  logEvento(
+    "PROCESO_LIBERADO",
+    proceso.nombre,
+    ramUsada,
+    "OK"
+  );
 }
 
 // ================= LOGS Y MÉTRICAS =================
