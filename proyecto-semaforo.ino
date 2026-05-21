@@ -519,23 +519,86 @@ void liberarProceso(Proceso& proceso) {
   );
 }
 
-// ================= LOGS Y MÉTRICAS =================
-// [TIMESTAMP], [EVENTO], [PROCESO_ID], [RAM_CONSUMIDA], [ESTADO_MEMORIA]
-void logEvento(const char* evento, const char* procesoId, int ramConsumida, const char* estadoMemoria) {
-  Serial.print("[");
-  Serial.print(millis());
-  Serial.print("], [");
-  Serial.print(evento);
-  Serial.print("], [");
-  Serial.print(procesoId);
-  Serial.print("], [");
-  Serial.print(ramConsumida);
-  Serial.print("], [");
-  Serial.print(estadoMemoria);
-  Serial.println("]");
+// Context switch
 
-  Serial.print("METRICAS, ram_maxima_usada=");
-  Serial.print(ram_maxima_usada);
-  Serial.print(", eventos_espera_memoria=");
-  Serial.println(eventos_espera_memoria);
+bool contextSwitch(int nuevoEstado) {
+
+  Proceso* siguiente = obtenerProceso(nuevoEstado);
+
+  if (procesoActual == siguiente) {
+    return true;
+  }
+
+  liberarProceso(*procesoActual);
+
+  if (!admitirProceso(*siguiente)) {
+
+    erroresMemoria++;
+
+    logEvento(
+      "CONTEXT_SWITCH_ERROR",
+      siguiente->nombre,
+      ramUsada,
+      "SIN_MEMORIA"
+    );
+
+    return false;
+  }
+
+  procesoActual = siguiente;
+
+  logEvento(
+    "CONTEXT_SWITCH",
+    siguiente->nombre,
+    ramUsada,
+    "OK"
+  );
+
+  return true;
+}
+
+
+// Sistema de logs
+
+void logEvento(
+  const char* evento,
+  const char* proceso,
+  int ram,
+  const char* estado
+) {
+
+  Serial.print("[");
+
+  Serial.print(millis());
+
+  Serial.print("] ");
+
+  Serial.print(evento);
+
+  Serial.print(" | ");
+
+  Serial.print(proceso);
+
+  Serial.print(" | RAM=");
+
+  Serial.print(ram);
+
+  Serial.print("KB | ");
+
+  Serial.println(estado);
+
+
+  // Métricas
+
+  Serial.print("RAM_MAX=");
+
+  Serial.print(ramMaxima);
+
+  Serial.print("KB");
+
+  Serial.print(" | ");
+
+  Serial.print("ERRORES_MEMORIA=");
+
+  Serial.println(erroresMemoria);
 }
