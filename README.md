@@ -2,6 +2,11 @@
 
 Sistema de control de tráfico basado en Arduino que permite la interrupción segura por parte de peatones mediante botones con lógica de bloqueo temporal
 
+# Objetivo
+
+Diseñar e implementar un sistema de semáforos concurrentes con control
+peatonal que permita demostrar conceptos de sistemas operativos como
+
 # Características Principales
 
 Elementos Principales:
@@ -54,9 +59,3 @@ Finalmente, en la función setup() se configuran todos los pines de los LEDs com
 # Mockup
 
 https://drive.google.com/file/d/1QjMIdgousDISngu440odbuZb5858p7xv/view?usp=drivesdk
- 
-# Diagrama de Conexiones:
- 
-# Instrucciones de instalación:
-
-# Roadmap:
